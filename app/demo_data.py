@@ -230,6 +230,14 @@ _DIST = {
         {"label": "2F", "count": 418},
         {"label": "1F", "count": 320},
     ],
+    "node_name": [
+        {"label": "PRJ-C-製程控制",    "count": 375},
+        {"label": "PRJ-A-製造線",      "count": 320},
+        {"label": "PRJ-A-能源管理",    "count": 200},
+        {"label": "PRJ-B-公用系統",    "count": 195},
+        {"label": "PRJ-B-安全監控",    "count": 100},
+        {"label": "PRJ-C-環境監測",    "count":  57},
+    ],
     "driver_type": [
         {"label": "Allen-Bradley", "count": 540},
         {"label": "Siemens",       "count": 380},
@@ -273,7 +281,7 @@ def get_modified_tags(start: date, end: date) -> list[dict]:
 
 
 def get_distribution(field: str) -> list[dict]:
-    allowed = {"site", "bu", "zone", "driver_type", "department", "data_type", "floor"}
+    allowed = {"site", "bu", "zone", "driver_type", "department", "data_type", "floor", "node_name"}
     if field not in allowed:
         raise ValueError(f"Field '{field}' is not allowed for distribution query.")
     return list(_DIST.get(field, []))

@@ -64,7 +64,7 @@ def get_modified_tags(start: date, end: date) -> list[dict]:
 
 def get_distribution(field: str) -> list[dict]:
     """Return COUNT(*) grouped by the given column (safe whitelist used)."""
-    allowed = {"site", "bu", "zone", "driver_type", "department", "data_type", "floor"}
+    allowed = {"site", "bu", "zone", "driver_type", "department", "data_type", "floor", "node_name"}
     if field not in allowed:
         raise ValueError(f"Field '{field}' is not allowed for distribution query.")
     return fetch_all(

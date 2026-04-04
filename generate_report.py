@@ -109,7 +109,7 @@ def main():
         dist_site        = data_source.get_distribution("site")
         dist_bu          = data_source.get_distribution("bu")
         dist_zone        = data_source.get_distribution("zone")
-        dist_driver_type = data_source.get_distribution("driver_type")
+        dist_project     = data_source.get_distribution("node_name")
         dist_department  = data_source.get_distribution("department")
     else:
         print("查詢資料庫中…")
@@ -120,7 +120,7 @@ def main():
             dist_site        = data_source.get_distribution("site")
             dist_bu          = data_source.get_distribution("bu")
             dist_zone        = data_source.get_distribution("zone")
-            dist_driver_type = data_source.get_distribution("driver_type")
+            dist_project     = data_source.get_distribution("node_name")
             dist_department  = data_source.get_distribution("department")
         except Exception as exc:
             print(f"\n[錯誤] 無法連線或查詢資料庫：{exc}")
@@ -138,7 +138,7 @@ def main():
         "dist_site":        dist_site,
         "dist_bu":          dist_bu,
         "dist_zone":        dist_zone,
-        "dist_driver_type": dist_driver_type,
+        "dist_project":     dist_project,
         "dist_department":  dist_department,
     }
 
