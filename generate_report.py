@@ -70,6 +70,7 @@ def main():
     parser.add_argument("--start", help="自訂起始日期 YYYY-MM-DD（搭配 --end 使用）")
     parser.add_argument("--end",   help="自訂結束日期 YYYY-MM-DD（不含當天）")
     parser.add_argument("--pdf",   action="store_true", help="同時產生 PDF 檔案")
+    parser.add_argument("--demo",  action="store_true", help="使用內建假資料預覽報表（無需資料庫）")
     parser.add_argument(
         "--output-dir",
         default=os.getenv("REPORT_OUTPUT_DIR", "reports"),
@@ -93,24 +94,38 @@ def main():
     print(f"產生報告：{label}")
     print(f"查詢期間：{start} ~ {end - timedelta(days=1)}")
 
-    # Import here so DB errors are surfaced clearly
-    from app import queries
     from app.renderer import render_html, save_html, save_pdf
 
-    print("查詢資料庫中…")
-    try:
-        summary       = queries.get_summary(start, end)
-        new_tags      = queries.get_new_tags(start, end)
-        modified_tags = queries.get_modified_tags(start, end)
-        dist_site        = queries.get_distribution("site")
-        dist_bu          = queries.get_distribution("bu")
-        dist_zone        = queries.get_distribution("zone")
-        dist_driver_type = queries.get_distribution("driver_type")
-        dist_department  = queries.get_distribution("department")
-    except Exception as exc:
-        print(f"\n[錯誤] 無法連線或查詢資料庫：{exc}")
-        print("請確認 .env 中的 PG_HOST / PG_DB / PG_USER / PG_PASSWORD 設定正確。")
-        sys.exit(1)
+    if args.demo:
+        from app import demo_data as data_source
+        print("[Demo 模式] 使用內建假資料，不需要資料庫連線。")
+    else:
+        from app import queries as data_source  # type: ignore[assignment]
+
+    if args.demo:
+        summary       = data_source.get_summary(start, end)
+        new_tags      = data_source.get_new_tags(start, end)
+        modified_tags = data_source.get_modified_tags(start, end)
+        dist_site        = data_source.get_distribution("site")
+        dist_bu          = data_source.get_distribution("bu")
+        dist_zone        = data_source.get_distribution("zone")
+        dist_driver_type = data_source.get_distribution("driver_type")
+        dist_department  = data_source.get_distribution("department")
+    else:
+        print("查詢資料庫中…")
+        try:
+            summary       = data_source.get_summary(start, end)
+            new_tags      = data_source.get_new_tags(start, end)
+            modified_tags = data_source.get_modified_tags(start, end)
+            dist_site        = data_source.get_distribution("site")
+            dist_bu          = data_source.get_distribution("bu")
+            dist_zone        = data_source.get_distribution("zone")
+            dist_driver_type = data_source.get_distribution("driver_type")
+            dist_department  = data_source.get_distribution("department")
+        except Exception as exc:
+            print(f"\n[錯誤] 無法連線或查詢資料庫：{exc}")
+            print("請確認 .env 中的 PG_HOST / PG_DB / PG_USER / PG_PASSWORD 設定正確。")
+            sys.exit(1)
 
     context = {
         "mode":           mode,
@@ -131,7 +146,7 @@ def main():
 
     # Output filenames
     date_str = start.strftime("%Y-%m-%d")
-    suffix   = mode
+    suffix   = ("demo_" if args.demo else "") + mode
     out_dir  = Path(args.output_dir)
     html_path = out_dir / f"report_{date_str}_{suffix}.html"
     pdf_path  = out_dir / f"report_{date_str}_{suffix}.pdf"
