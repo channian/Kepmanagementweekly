@@ -287,6 +287,10 @@ def get_distribution(field: str) -> list[dict]:
     return list(_DIST.get(field, []))
 
 
+def get_project_distribution() -> list[dict]:
+    return list(_DIST.get("node_name", []))
+
+
 def get_top_new_by_site(start: date, end: date) -> list[dict]:
     counts: dict[str, int] = {}
     for row in _NEW_TAGS_ROWS:

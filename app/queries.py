@@ -79,6 +79,21 @@ def get_distribution(field: str) -> list[dict]:
     )
 
 
+def get_project_distribution() -> list[dict]:
+    """Return tag count grouped by project name via tag_projects join."""
+    return fetch_all(
+        """
+        SELECT
+            COALESCE(NULLIF(TRIM(p.project_name), ''), '(未設定)') AS label,
+            COUNT(DISTINCT tp.tag_id) AS count
+        FROM projects p
+        JOIN tag_projects tp ON tp.project_id = p.project_id
+        GROUP BY p.project_name
+        ORDER BY count DESC
+        """
+    )
+
+
 def get_top_new_by_site(start: date, end: date) -> list[dict]:
     """New tags breakdown by site for the period."""
     return fetch_all(
