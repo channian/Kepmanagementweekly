@@ -6,6 +6,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
@@ -29,8 +30,8 @@ def _make_env() -> Environment:
         except (TypeError, ValueError):
             return str(value)
 
-    def tojson_filter(value) -> str:
-        return json.dumps(value, ensure_ascii=False, default=str)
+    def tojson_filter(value) -> Markup:
+        return Markup(json.dumps(value, ensure_ascii=False, default=str))
 
     env.filters["format_dt"] = format_dt
     env.filters["format_number"] = format_number
