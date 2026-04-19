@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kepware 點位管理{{ '週報' if mode == 'weekly' else '月報' }} — {{ period_label }}</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Base dark palette ───────────────────────────────────────── */
+    :root {
+      --bg-base:    #0d1117;
+      --bg-card:    #161b22;
+      --bg-header:  #21262d;
+      --border:     #30363d;
+      --text:       #e6edf3;
+      --text-muted: #8b949e;
+      --code-color: #79c0ff;
+    }
+
+    html, body {
+      background: var(--bg-base);
+      color: var(--text);
+      font-family: "Noto Sans TC", "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── KPI cards ───────────────────────────────────────────────── */
+    .kpi-card {
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      color: #fff;
+    }
+    .kpi-card .value { font-size: 2.8rem; font-weight: 700; line-height: 1; }
+    .kpi-card .label { font-size: 0.9rem; opacity: 0.8; margin-top: 6px; }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.4);
+    }
+    .card-header {
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      border-radius: 12px 12px 0 0 !important;
+      font-weight: 600;
+      color: var(--text);
+      padding: .75rem 1rem;
+    }
+    .card-body { color: var(--text); }
+
+    /* ── Tables ──────────────────────────────────────────────────── */
+    .table {
+      --bs-table-bg: transparent;
+      --bs-table-color: var(--text);
+      --bs-table-border-color: var(--border);
+      --bs-table-hover-bg: #1c2128;
+      --bs-table-striped-bg: #161b22;
+    }
+    .table thead th {
+      background: var(--bg-header);
+      color: var(--text-muted);
+      font-size: .8rem;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .table td { border-color: var(--border); vertical-align: middle; }
+    code {
+      color: var(--code-color);
+      background: rgba(121,192,255,.08);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: .82em;
+    }
+    .text-muted { color: var(--text-muted) !important; }
+
+    /* ── Chart wrappers ──────────────────────────────────────────── */
+    .chart-wrapper { position: relative; height: 260px; }
+
+    /* ── Header divider ──────────────────────────────────────────── */
+    .report-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Print ───────────────────────────────────────────────────── */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; color: #000; }
+      .card { border: 1px solid #ccc; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid py-4 px-4">
+
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <div class="d-flex justify-content-between align-items-center report-header">
+    <div>
+      <h2 class="mb-1 fw-bold">
+        Kepware 點位管理{{ '週報' if mode == 'weekly' else '月報' }}
+      </h2>
+      <small class="text-muted">
+        {% if site_name %}{{ site_name }} ｜ {% endif %}
+        報告期間：{{ period_label }} ｜ 產生時間：{{ generated_at }}
+      </small>
+    </div>
+    <button
+      class="btn btn-sm no-print"
+      style="background:var(--bg-header);border:1px solid var(--border);color:var(--text);"
+      onclick="window.print()"
+    >列印 / 存成 PDF</button>
+  </div>
+
+  <!-- ── KPI Cards ────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="kpi-card" style="background:linear-gradient(135deg,#1d3557,#457b9d);">
+        <div class="value">{{ summary.total_tags | format_number }}</div>
+        <div class="label">目前總點位數</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="kpi-card" style="background:linear-gradient(135deg,#0a6b60,#2ec4b6);">
+        <div class="value">{{ summary.new_tags | format_number }}</div>
+        <div class="label">本期新增點位</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="kpi-card" style="background:linear-gradient(135deg,#7b2d00,#f77f00);">
+        <div class="value">{{ summary.modified_tags | format_number }}</div>
+        <div class="label">本期修改點位</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Distribution Charts (2×2) ───────────────────────────────── -->
+  <div class="row g-3 mb-4">
+    {% set chart_configs = [
+      ('dist_site',    dist_site,    '依廠區 (Site) 分佈'),
+      ('dist_bu',      dist_bu,      '依 BU 分佈'),
+      ('dist_zone',    dist_zone,    '依區域 (Zone) 分佈'),
+      ('dist_project', dist_project, '依專案分佈'),
+    ] %}
+    {% for chart_id, dist_data, title in chart_configs %}
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-header">{{ title }}</div>
+        <div class="card-body">
+          <div class="chart-wrapper">
+            <canvas id="{{ chart_id }}"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Department bar chart (full width) -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">依部門 (Department) 分佈</div>
+        <div class="card-body">
+          <div class="chart-wrapper" style="height:300px">
+            <canvas id="dist_department"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New Tags Table ───────────────────────────────────────────── -->
+  <div class="card mb-4">
+    <div class="card-header">本期新增點位清單（{{ new_tags | length }} 筆）</div>
+    <div class="card-body p-0">
+      {% if new_tags %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tag 名稱</th>
+              <th>描述</th>
+              <th>Site</th>
+              <th>BU</th>
+              <th>Zone</th>
+              <th>Driver</th>
+              <th>負責人</th>
+              <th>部門</th>
+              <th>建立時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tag in new_tags %}
+            <tr>
+              <td class="text-muted">{{ loop.index }}</td>
+              <td><code>{{ tag.tagname }}</code></td>
+              <td>{{ tag.description or '' }}</td>
+              <td>{{ tag.site or '' }}</td>
+              <td>{{ tag.bu or '' }}</td>
+              <td>{{ tag.zone or '' }}</td>
+              <td>{{ tag.driver_type or '' }}</td>
+              <td>{{ tag.owner or '' }}</td>
+              <td>{{ tag.department or '' }}</td>
+              <td>{{ tag.created_date | format_dt }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted p-3 mb-0">本期無新增點位。</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Modified Tags Table ──────────────────────────────────────── -->
+  <div class="card mb-4">
+    <div class="card-header">本期修改點位清單（{{ modified_tags | length }} 筆）</div>
+    <div class="card-body p-0">
+      {% if modified_tags %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tag 名稱</th>
+              <th>描述</th>
+              <th>Site</th>
+              <th>BU</th>
+              <th>Zone</th>
+              <th>Driver</th>
+              <th>負責人</th>
+              <th>建立時間</th>
+              <th>修改時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tag in modified_tags %}
+            <tr>
+              <td class="text-muted">{{ loop.index }}</td>
+              <td><code>{{ tag.tagname }}</code></td>
+              <td>{{ tag.description or '' }}</td>
+              <td>{{ tag.site or '' }}</td>
+              <td>{{ tag.bu or '' }}</td>
+              <td>{{ tag.zone or '' }}</td>
+              <td>{{ tag.driver_type or '' }}</td>
+              <td>{{ tag.owner or '' }}</td>
+              <td>{{ tag.created_date | format_dt }}</td>
+              <td>{{ tag.updated_date | format_dt }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted p-3 mb-0">本期無修改點位。</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="text-end small" style="color:var(--text-muted)">
+    Kepmanagementweekly — 自動產生報告
+  </p>
+</div>
+
+<!-- ── Chart.js init ─────────────────────────────────────────────── -->
+<script>
+// ── Global dark defaults for all charts ──────────────────────────
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+
+const PALETTE = [
+  '#4cc9f0','#4361ee','#7209b7','#f72585','#2ec4b6',
+  '#f77f00','#a7c957','#6a994e','#3a0ca3','#bc4749',
+  '#457b9d','#e63946','#06d6a0','#ffd166','#ef476f',
+];
+
+function doughnut(id, data) {
+  const labels = data.map(d => d.label);
+  const counts = data.map(d => d.count);
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: PALETTE.slice(0, labels.length),
+        borderColor: '#161b22',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            boxWidth: 12,
+            font: { size: 12 },
+            color: '#e6edf3',
+          }
+        }
+      }
+    }
+  });
+}
+
+function barHorizontal(id, data) {
+  const labels = data.map(d => d.label);
+  const counts = data.map(d => d.count);
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '點位數',
+        data: counts,
+        backgroundColor: PALETTE.slice(0, labels.length),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { precision: 0, color: '#8b949e' },
+          grid: { color: '#21262d' },
+        },
+        y: {
+          ticks: { color: '#e6edf3' },
+          grid: { color: '#21262d' },
+        }
+      }
+    }
+  });
+}
+
+doughnut('dist_site',    {{ dist_site    | tojson }});
+doughnut('dist_bu',      {{ dist_bu      | tojson }});
+doughnut('dist_zone',    {{ dist_zone    | tojson }});
+doughnut('dist_project', {{ dist_project | tojson }});
+barHorizontal('dist_department', {{ dist_department | tojson }});
+</script>
+</body>
+</html>
