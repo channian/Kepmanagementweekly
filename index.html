@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KPM 點位管理月報 — 2026年3月</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --bg-0:#05070d; --bg-1:#0a0f1a; --bg-2:#0f172a; --bg-3:#172033; --bg-4:#1e293b;
+  --bg-grid:rgba(96,165,250,0.05);
+  --fg-1:#e6edf7; --fg-2:#94a3b8; --fg-3:#64748b; --fg-4:#3f4b63;
+  --border-1:#1e293b; --border-2:#293548; --border-3:#3b4a66;
+  --accent:#22d3ee; --accent-hover:#06b6d4; --accent-soft:rgba(34,211,238,0.12); --accent-glow:rgba(34,211,238,0.35);
+  --blue:#3b82f6; --blue-hover:#2563eb; --blue-soft:rgba(59,130,246,0.12); --blue-glow:rgba(59,130,246,0.4);
+  --ok:#22c55e; --ok-bg:rgba(34,197,94,0.1); --ok-glow:rgba(34,197,94,0.35);
+  --warn:#f59e0b; --warn-bg:rgba(245,158,11,0.1); --warn-glow:rgba(245,158,11,0.35);
+  --err:#ef4444; --err-bg:rgba(239,68,68,0.1); --err-glow:rgba(239,68,68,0.45);
+  --info:#60a5fa; --info-bg:rgba(96,165,250,0.1);
+  --muted:#475569; --muted-bg:rgba(71,85,105,0.15);
+  --shadow-1:0 2px 8px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.3);
+  --shadow-2:0 8px 28px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.3);
+  --glow-accent:0 0 0 1px rgba(34,211,238,0.25),0 0 20px rgba(34,211,238,0.15);
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  --font-sans:"Inter",-apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;
+  --font-mono:"JetBrains Mono","Cascadia Code",Consolas,monospace;
+  --ease:cubic-bezier(0.4,0,0.2,1); --t-fast:120ms; --t-med:200ms;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg-1);color:var(--fg-1);font-family:var(--font-sans);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--bg-grid) 1px,transparent 1px),linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px);
+  background-size:32px 32px;background-attachment:fixed;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg-1);}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border-3);}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{background:var(--bg-2);border-right:1px solid var(--border-1);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;border-bottom:1px solid var(--border-1);margin-bottom:12px;}
+.bmark{width:36px;height:36px;border-radius:10px;background:var(--bg-3);border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--fg-1);letter-spacing:-.02em;position:relative;flex-shrink:0;}
+.bmark .pdot{position:absolute;bottom:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent-glow);animation:pulse 1.6s ease-in-out infinite;}
+.btitle{font-weight:700;font-size:14px;color:var(--fg-1);line-height:1.2;}
+.bsub{font-family:var(--font-mono);font-size:9px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+.nav-sec{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-4);padding:12px 10px 5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;color:var(--fg-2);font-weight:500;font-size:13px;cursor:pointer;transition:all 140ms var(--ease);position:relative;text-decoration:none;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+.nav-item:hover{background:var(--bg-3);color:var(--fg-1);}
+.nav-item.active{background:var(--accent-soft);color:var(--accent);}
+.nav-item.active::before{content:'';position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0;box-shadow:0 0 8px var(--accent-glow);}
+.nav-chip{margin-left:auto;font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:999px;background:var(--bg-3);color:var(--fg-3);}
+.sidebar-footer{margin-top:auto;padding-top:12px;border-top:1px solid var(--border-1);}
+
+/* Topbar */
+.main{display:flex;flex-direction:column;min-width:0;}
+.topbar{height:60px;background:var(--bg-2);border-bottom:1px solid var(--border-1);display:flex;align-items:center;padding:0 28px;gap:14px;position:sticky;top:0;z-index:20;}
+.topbar h1{font-size:17px;font-weight:700;color:var(--fg-1);letter-spacing:-.01em;}
+.topbar-sub{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:2px;}
+.top-spacer{flex:1;}
+.live-badge{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:11px;color:var(--fg-2);padding:5px 12px;border:1px solid var(--border-2);border-radius:999px;background:var(--bg-1);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 5px var(--ok-glow);animation:pulse 1.5s ease-in-out infinite;}
+.btn-ghost{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;background:transparent;border:1.5px solid var(--border-2);color:var(--fg-2);cursor:pointer;transition:all 160ms var(--ease);font-family:var(--font-sans);}
+.btn-ghost:hover{color:var(--fg-1);border-color:var(--border-3);}
+.btn-ghost svg{width:13px;height:13px;}
+
+/* Content */
+.content{padding:28px 32px 72px;}
+
+/* ── Section ── */
+.sec{scroll-margin-top:80px;}
+.sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.sec-hd h2{font-size:19px;font-weight:700;letter-spacing:-.01em;}
+.sec-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-family:var(--font-mono);padding:2px 8px;background:var(--accent-soft);border-radius:999px;}
+.sec-meta{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);padding:2px 8px;border:1px solid var(--border-1);border-radius:999px;}
+.sec-divider{height:1px;background:var(--border-1);margin:36px 0;}
+
+/* ── KPI grid ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-1);position:relative;overflow:hidden;}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0;}
+.kpi.c-accent::after{background:linear-gradient(90deg,var(--accent) 0%,transparent 80%);}
+.kpi.c-blue::after{background:linear-gradient(90deg,var(--blue) 0%,transparent 80%);}
+.kpi.c-ok::after{background:linear-gradient(90deg,var(--ok) 0%,transparent 80%);}
+.kpi.c-warn::after{background:linear-gradient(90deg,var(--warn) 0%,transparent 80%);}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:10px;}
+.kpi-val{font-family:var(--font-mono);font-size:34px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;margin-bottom:8px;}
+.kpi.c-accent .kpi-val{color:var(--accent);}
+.kpi.c-blue .kpi-val{color:var(--blue);}
+.kpi.c-ok .kpi-val{color:var(--ok);}
+.kpi.c-warn .kpi-val{color:var(--warn);}
+.kpi-delta{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);display:flex;align-items:center;gap:4px;}
+.up{color:var(--ok);} .dn{color:var(--err);}
+
+/* ── Card ── */
+.card{background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);box-shadow:var(--shadow-1);overflow:hidden;}
+.card-hd{display:flex;align-items:center;gap:9px;padding:14px 18px;border-bottom:1px solid var(--border-1);}
+.card-hd .cht{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-2);}
+.card-hd .ic{color:var(--accent);display:flex;}
+.card-hd .ic svg{width:15px;height:15px;}
+.card-hd .sp{flex:1;}
+.card-hd .cbadge{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);padding:2px 8px;border:1px solid var(--border-1);border-radius:999px;}
+.card-body{padding:18px 20px;}
+
+/* ── Grids ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.g-chart{display:grid;grid-template-columns:1fr 1.7fr;gap:14px;margin-bottom:14px;}
+
+/* ── Charts ── */
+.cw{position:relative;height:240px;}
+.cw-sm{position:relative;height:180px;}
+.cw-md{position:relative;height:280px;}
+.cw-lg{position:relative;height:340px;}
+.cw-xl{position:relative;height:420px;}
+
+/* ── Dist list ── */
+.dist-list{display:flex;flex-direction:column;gap:9px;}
+.dist-row{display:grid;grid-template-columns:1fr 1fr auto auto;align-items:center;gap:8px;}
+.dist-label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--fg-1);}
+.dist-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dist-bar-wrap{height:3px;background:var(--bg-4);border-radius:999px;overflow:hidden;}
+.dist-bar-fill{height:100%;border-radius:999px;transition:width .5s var(--ease);}
+.dist-count{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);text-align:right;font-variant-numeric:tabular-nums;min-width:36px;}
+.dist-pct{font-family:var(--font-mono);font-size:10px;color:var(--fg-4);text-align:right;min-width:38px;}
+
+/* ── Heatmap ── */
+.hmap{width:100%;border-collapse:collapse;font-size:12px;}
+.hmap th{padding:8px 10px;background:var(--bg-1);color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;text-align:center;border:1px solid var(--border-1);}
+.hmap th:first-child{text-align:left;}
+.hmap td{padding:10px 12px;border:1px solid var(--border-1);text-align:center;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.hmap td:first-child{text-align:left;font-family:var(--font-sans);font-size:13px;color:var(--fg-1);}
+.hm0{background:var(--bg-2);color:var(--fg-4);}
+.hm1{background:rgba(34,211,238,.04);color:var(--fg-3);}
+.hm2{background:rgba(34,211,238,.09);color:var(--fg-2);}
+.hm3{background:rgba(34,211,238,.16);color:var(--accent);}
+.hm4{background:rgba(34,211,238,.25);color:var(--accent);font-weight:600;}
+.hm-tot td{background:var(--bg-3);color:var(--fg-2);font-weight:600;border-top:2px solid var(--border-2);}
+.hm-tot td:first-child{color:var(--fg-2);}
+
+/* ── Tables ── */
+.tbl-scroll{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tbl thead th{background:var(--bg-1);padding:9px 13px;text-align:left;font-weight:600;color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border-1);white-space:nowrap;}
+.tbl tbody td{padding:10px 13px;border-bottom:1px solid var(--border-1);color:var(--fg-1);}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl tbody tr{transition:background 100ms var(--ease);}
+.tbl tbody tr:hover{background:var(--bg-3);}
+.td-mono{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);}
+.td-code{font-family:var(--font-mono);font-size:11px;color:#79c0ff;background:rgba(121,192,255,.09);padding:1px 5px;border-radius:4px;display:inline-block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+.td-sub{font-family:var(--font-mono);font-size:10px;color:var(--fg-4);margin-top:2px;}
+.td-r{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+
+/* ── Pills ── */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;font-family:var(--font-mono);letter-spacing:.02em;white-space:nowrap;}
+.pill .dot{width:5px;height:5px;border-radius:50%;}
+.p-ok{background:var(--ok-bg);color:var(--ok);}
+.p-ok .dot{background:var(--ok);box-shadow:0 0 4px var(--ok-glow);}
+.p-info{background:var(--info-bg);color:var(--info);}
+.p-info .dot{background:var(--info);}
+.p-warn{background:var(--warn-bg);color:var(--warn);}
+.p-warn .dot{background:var(--warn);}
+.p-muted{background:var(--muted-bg);color:var(--fg-2);}
+.p-muted .dot{background:var(--muted);}
+
+/* ── Health bars ── */
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.health-item{background:var(--bg-3);border-radius:8px;padding:14px 16px;border:1px solid var(--border-1);}
+.health-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3);margin-bottom:8px;}
+.health-bar{height:5px;background:var(--border-1);border-radius:999px;overflow:hidden;margin-bottom:6px;}
+.health-fill{height:100%;border-radius:999px;}
+.health-val{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--fg-1);}
+.health-det{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:2px;}
+
+/* ── Site card mini ── */
+.site-card{background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-1);}
+.site-big{font-family:var(--font-mono);font-size:38px;font-weight:600;letter-spacing:-.02em;line-height:1;margin-bottom:4px;}
+.site-sub{font-size:11px;color:var(--fg-3);margin-bottom:14px;}
+.mini-trend{display:flex;align-items:flex-end;gap:2px;height:28px;}
+.mini-bar-s{flex:1;border-radius:2px 2px 0 0;}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border-1);margin-bottom:18px;}
+.tab{padding:9px 18px;font-size:13px;font-weight:600;color:var(--fg-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 140ms;user-select:none;}
+.tab:hover{color:var(--fg-1);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* ── Scrollable table wrapper ── */
+.tbl-max{max-height:380px;overflow-y:auto;}
+
+/* ── Animations ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.fadein{animation:fadeUp .3s var(--ease) both;}
+
+/* ── Print ── */
+@media print{
+  .sidebar,.topbar,.btn-ghost,.tabs-bar{display:none!important;}
+  .app{display:block;}
+  .content{padding:12px;}
+  body{background:#fff!important;color:#000!important;background-image:none!important;}
+  .card,.kpi,.site-card{border:1px solid #ddd;box-shadow:none;background:#fff;}
+  .card-hd{background:#f5f5f5;}
+}
+</style>
+</head>
+<body style="background-color: rgb(6, 25, 67)">
+<div class="app">
+
+<!-- ─────────────── SIDEBAR ─────────────── -->
+<aside class="sidebar" style="background-color: rgb(6, 25, 67)">
+  <div class="brand">
+    <div class="bmark">KPM<div class="pdot"></div></div>
+    <div>
+      <div class="btitle">KPM Monitor</div>
+      <div class="bsub">Monthly</div>
+    </div>
+  </div>
+
+  <div class="nav-sec">報告章節</div>
+  <a class="nav-item active" href="#overview"><i data-lucide="layout-dashboard"></i>月度總覽</a>
+  <a class="nav-item" href="#system-dist"><i data-lucide="cpu"></i>系統分佈<span class="nav-chip">4</span></a>
+  <a class="nav-item" href="#bu-dist"><i data-lucide="building-2"></i>BU 分佈<span class="nav-chip">3</span></a>
+  <a class="nav-item" href="#project-dist"><i data-lucide="folder-open"></i>專案分佈<span class="nav-chip">6</span></a>
+  <a class="nav-item" href="#site-dist"><i data-lucide="map-pin"></i>廠區分析<span class="nav-chip">3</span></a>
+  <a class="nav-item" href="#dept-dist"><i data-lucide="users"></i>部門排名<span class="nav-chip">5</span></a>
+  <a class="nav-item" href="#health"><i data-lucide="shield-check"></i>Tag 健康度</a>
+  <a class="nav-item" href="#changes"><i data-lucide="git-commit-horizontal"></i>本月異動<span class="nav-chip">50</span></a>
+
+  <div class="sidebar-footer">
+    <div class="nav-sec" style="padding-top:0;">資料來源</div>
+    <a class="nav-item" href="#"><i data-lucide="database"></i>PostgreSQL</a>
+  </div>
+</aside>
+
+<!-- ─────────────── MAIN ─────────────── -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar" style="background-color: rgb(5, 25, 67)">
+    <div>
+      <h1>點位管理月報</h1>
+      <div class="topbar-sub">KepwareMonitorOPC / 月報 / 2026-03</div>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="live-badge"><div class="live-dot"></div>2026年3月報告 ｜ 產生：2026-04-04</div>
+    <button class="btn-ghost" onclick="window.print()"><i data-lucide="printer"></i>列印 / PDF</button>
+  </header>
+
+  <div class="content">
+
+  <!-- ══════════════ 1. 月度總覽 ══════════════ -->
+  <section id="overview" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">OVERVIEW</span>
+      <h2>月度總覽</h2>
+      <span class="sec-meta">2026-03-01 → 2026-03-31</span>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi c-accent">
+        <div class="kpi-label">目前總點位數</div>
+        <div class="kpi-val">1,247</div>
+        <div class="kpi-delta">較上月 <span class="up">↑ +38</span>&ensp;(+3.1%)</div>
+      </div>
+      <div class="kpi c-blue">
+        <div class="kpi-label">本月新增</div>
+        <div class="kpi-val">+38</div>
+        <div class="kpi-delta">上月 +27 &ensp;<span class="up">↑ 40.7%</span></div>
+      </div>
+      <div class="kpi c-ok">
+        <div class="kpi-label">本月修改</div>
+        <div class="kpi-val">12</div>
+        <div class="kpi-delta">上月 13 &ensp;<span class="dn">↓ 7.7%</span></div>
+      </div>
+      <div class="kpi c-warn">
+        <div class="kpi-label">資料完整率</div>
+        <div class="kpi-val">96.8<span style="font-size:17px">%</span></div>
+        <div class="kpi-delta">較上月 <span class="up">↑ +0.3%</span></div>
+      </div>
+    </div>
+
+    <!-- Trend -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="trending-up"></i></div>
+        <div class="cht">月度成長趨勢</div>
+        <div class="sp"></div>
+        <div class="cbadge">過去 6 個月</div>
+      </div>
+      <div class="card-body">
+        <div class="cw-lg"><canvas id="chartTrend"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 2. 系統分佈 ══════════════ -->
+  <section id="system-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">SYSTEM</span>
+      <h2>系統分佈</h2>
+      <span class="sec-meta">依 Driver Type 統計</span>
+    </div>
+
+    <div class="g-chart">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="pie-chart"></i></div><div class="cht">Driver 佔比</div></div>
+        <div class="card-body"><div class="cw"><canvas id="chartSystem"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="bar-chart-2"></i></div>
+          <div class="cht">點位數排名</div>
+          <div class="sp"></div>
+          <div class="cbadge">Total 1,247</div>
+        </div>
+        <div class="card-body">
+          <div class="dist-list" id="systemList"></div>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-1);">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:10px;">本月新增 by Driver</div>
+            <div class="dist-list" id="systemNewList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System × BU matrix -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="grid-3x3"></i></div>
+        <div class="cht">系統 × BU 分佈矩陣</div>
+        <div class="sp"></div>
+        <div class="cbadge">色深 = 點位密度</div>
+      </div>
+      <div class="card-body">
+        <div class="tbl-scroll">
+          <table class="hmap">
+            <thead><tr><th>系統 / BU</th><th>製造部</th><th>設備部</th><th>能源部</th><th>合計</th></tr></thead>
+            <tbody>
+              <tr><td>Allen-Bradley</td><td class="hm4">320</td><td class="hm3">180</td><td class="hm1">40</td><td class="hm4">540</td></tr>
+              <tr><td>Siemens</td><td class="hm3">150</td><td class="hm3">140</td><td class="hm2">90</td><td class="hm4">380</td></tr>
+              <tr><td>Modbus TCP</td><td class="hm2">90</td><td class="hm1">50</td><td class="hm2">70</td><td class="hm3">210</td></tr>
+              <tr><td>OPC-UA</td><td class="hm1">60</td><td class="hm1">10</td><td class="hm1">47</td><td class="hm2">117</td></tr>
+              <tr class="hm-tot"><td>合計</td><td>620</td><td>380</td><td>247</td><td>1,247</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 3. BU 分佈 ══════════════ -->
+  <section id="bu-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">BU</span>
+      <h2>BU 分佈</h2>
+      <span class="sec-meta">依事業單位統計</span>
+    </div>
+
+    <div class="g-chart">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="pie-chart"></i></div><div class="cht">BU 佔比</div></div>
+        <div class="card-body"><div class="cw"><canvas id="chartBU"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="bar-chart-2"></i></div>
+          <div class="cht">BU 點位統計</div>
+          <div class="sp"></div>
+          <div class="cbadge">3 個 BU</div>
+        </div>
+        <div class="card-body">
+          <div class="dist-list" id="buList"></div>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-1);">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:10px;">本月新增 by BU</div>
+            <div class="dist-list" id="buNewList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BU stacked trend -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="layers"></i></div>
+        <div class="cht">BU 累積趨勢（過去 6 個月）</div>
+        <div class="sp"></div>
+        <div class="cbadge">Stacked area</div>
+      </div>
+      <div class="card-body">
+        <div class="cw-md"><canvas id="chartBUTrend"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 4. 專案分佈 ══════════════ -->
+  <section id="project-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">PROJECT</span>
+      <h2>專案分佈</h2>
+      <span class="sec-meta">依 Node Name / 專案統計</span>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="bar-chart-horizontal"></i></div>
+        <div class="cht">各專案點位數</div>
+        <div class="sp"></div>
+        <div class="cbadge">6 個專案</div>
+      </div>
+      <div class="card-body">
+        <div class="cw-md"><canvas id="chartProject"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="table"></i></div>
+        <div class="cht">專案點位明細</div>
+      </div>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>#</th><th>專案</th><th>廠區</th><th>BU</th><th style="text-align:right">點位數</th><th style="text-align:right">佔比</th><th style="text-align:right">本月新增</th><th>狀態</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="td-mono">1</td><td><span class="td-code">PRJ-C-製程控制</span></td><td style="color:var(--fg-2)">Factory-C</td><td style="color:var(--fg-2)">製造部</td><td class="td-r">375</td><td class="td-r" style="color:var(--fg-3)">30.1%</td><td class="td-r"><span style="color:var(--ok);font-family:var(--font-mono)">+14</span></td><td><span class="pill p-ok"><span class="dot"></span>ACTIVE</span></td></tr>
+            <tr><td class="td-mono">2</td><td><span class="td-code">PRJ-A-製造線</span></td><td style="color:var(--fg-2)">Factory-A</td><td style="color:var(--fg-2)">製造部</td><td class="td-r">320</td><td class="td-r" style="color:var(--fg-3)">25.7%</td><td class="td-r"><span style="color:var(--ok);font-family:var(--font-mono)">+10</span></td><td><span class="pill p-ok"><span class="dot"></span>ACTIVE</span></td></tr>
+            <tr><td class="td-mono">3</td><td><span class="td-code">PRJ-A-能源管理</span></td><td style="color:var(--fg-2)">Factory-A</td><td style="color:var(--fg-2)">設備部</td><td class="td-r">200</td><td class="td-r" style="color:var(--fg-3)">16.0%</td><td class="td-r"><span style="color:var(--ok);font-family:var(--font-mono)">+7</span></td><td><span class="pill p-ok"><span class="dot"></span>ACTIVE</span></td></tr>
+            <tr><td class="td-mono">4</td><td><span class="td-code">PRJ-B-公用系統</span></td><td style="color:var(--fg-2)">Factory-B</td><td style="color:var(--fg-2)">設備部</td><td class="td-r">195</td><td class="td-r" style="color:var(--fg-3)">15.6%</td><td class="td-r"><span style="color:var(--ok);font-family:var(--font-mono)">+5</span></td><td><span class="pill p-ok"><span class="dot"></span>ACTIVE</span></td></tr>
+            <tr><td class="td-mono">5</td><td><span class="td-code">PRJ-B-安全監控</span></td><td style="color:var(--fg-2)">Factory-B</td><td style="color:var(--fg-2)">製造部</td><td class="td-r">100</td><td class="td-r" style="color:var(--fg-3)">8.0%</td><td class="td-r"><span style="color:var(--fg-3);font-family:var(--font-mono)">+2</span></td><td><span class="pill p-info"><span class="dot"></span>ACTIVE</span></td></tr>
+            <tr><td class="td-mono">6</td><td><span class="td-code">PRJ-C-環境監測</span></td><td style="color:var(--fg-2)">Factory-C</td><td style="color:var(--fg-2)">能源部</td><td class="td-r">57</td><td class="td-r" style="color:var(--fg-3)">4.6%</td><td class="td-r"><span style="color:var(--fg-4);font-family:var(--font-mono)">0</span></td><td><span class="pill p-muted"><span class="dot"></span>STABLE</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 5. 廠區分析 ══════════════ -->
+  <section id="site-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">SITE</span>
+      <h2>廠區分析</h2>
+      <span class="sec-meta">依廠區統計</span>
+    </div>
+
+    <div class="g3" style="margin-bottom:14px;">
+      <div class="site-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);">Factory-C</div>
+          <span class="pill p-ok"><span class="dot"></span>LEADER</span>
+        </div>
+        <div class="site-big" style="color:var(--accent);">485</div>
+        <div class="site-sub">38.9% 總點位</div>
+        <div class="mini-trend" id="siteTrendC"></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--fg-2);font-family:var(--font-mono);"><span style="color:var(--ok);">+21</span> 本月新增</div>
+      </div>
+      <div class="site-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);">Factory-A</div>
+        </div>
+        <div class="site-big" style="color:var(--blue);">450</div>
+        <div class="site-sub">36.1% 總點位</div>
+        <div class="mini-trend" id="siteTrendA"></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--fg-2);font-family:var(--font-mono);"><span style="color:var(--ok);">+11</span> 本月新增</div>
+      </div>
+      <div class="site-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);">Factory-B</div>
+        </div>
+        <div class="site-big" style="color:var(--info);">312</div>
+        <div class="site-sub">25.0% 總點位</div>
+        <div class="mini-trend" id="siteTrendB"></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--fg-2);font-family:var(--font-mono);"><span style="color:var(--ok);">+6</span> 本月新增</div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="pie-chart"></i></div><div class="cht">廠區佔比</div></div>
+        <div class="card-body"><div class="cw"><canvas id="chartSite"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="grid-3x3"></i></div>
+          <div class="cht">廠區 × BU 點位矩陣</div>
+        </div>
+        <div class="card-body">
+          <div class="tbl-scroll">
+            <table class="hmap">
+              <thead><tr><th>廠區 / BU</th><th>製造部</th><th>設備部</th><th>能源部</th><th>合計</th></tr></thead>
+              <tbody>
+                <tr><td>Factory-A</td><td class="hm4">320</td><td class="hm2">130</td><td class="hm0">—</td><td class="hm4">450</td></tr>
+                <tr><td>Factory-B</td><td class="hm3">150</td><td class="hm3">162</td><td class="hm0">—</td><td class="hm3">312</td></tr>
+                <tr><td>Factory-C</td><td class="hm2">150</td><td class="hm2">88</td><td class="hm4">247</td><td class="hm4">485</td></tr>
+                <tr class="hm-tot"><td>合計</td><td>620</td><td>380</td><td>247</td><td>1,247</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 6. 部門排名 ══════════════ -->
+  <section id="dept-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">DEPARTMENT</span>
+      <h2>部門排名</h2>
+      <span class="sec-meta">依部門統計負責點位數</span>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="bar-chart-horizontal"></i></div><div class="cht">部門點位數</div></div>
+        <div class="card-body"><div class="cw-md"><canvas id="chartDept"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="users"></i></div>
+          <div class="cht">部門統計明細</div>
+          <div class="sp"></div>
+          <div class="cbadge">5 個部門</div>
+        </div>
+        <div class="card-body">
+          <div class="dist-list" id="deptList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 7. Tag 健康度 ══════════════ -->
+  <section id="health" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">HEALTH</span>
+      <h2>Tag 健康度</h2>
+      <span class="sec-meta">資料完整性分析</span>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="shield-check"></i></div>
+        <div class="cht">資料完整率</div>
+        <div class="sp"></div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--ok);">96.8%</div>
+      </div>
+      <div class="card-body">
+        <div class="health-grid">
+          <div class="health-item">
+            <div class="health-lbl">設有描述</div>
+            <div class="health-bar"><div class="health-fill" style="width:94.1%;background:var(--accent);"></div></div>
+            <div class="health-val">94.1%</div>
+            <div class="health-det">1,173 / 1,247 筆</div>
+          </div>
+          <div class="health-item">
+            <div class="health-lbl">指定負責人</div>
+            <div class="health-bar"><div class="health-fill" style="width:96.3%;background:var(--ok);"></div></div>
+            <div class="health-val">96.3%</div>
+            <div class="health-det">1,201 / 1,247 筆</div>
+          </div>
+          <div class="health-item">
+            <div class="health-lbl">設有區域</div>
+            <div class="health-bar"><div class="health-fill" style="width:100%;background:var(--blue);"></div></div>
+            <div class="health-val">100%</div>
+            <div class="health-det">1,247 / 1,247 筆</div>
+          </div>
+          <div class="health-item">
+            <div class="health-lbl">指定 BU</div>
+            <div class="health-bar"><div class="health-fill" style="width:100%;background:var(--blue);"></div></div>
+            <div class="health-val">100%</div>
+            <div class="health-det">1,247 / 1,247 筆</div>
+          </div>
+          <div class="health-item">
+            <div class="health-lbl">Driver Type</div>
+            <div class="health-bar"><div class="health-fill" style="width:100%;background:var(--blue);"></div></div>
+            <div class="health-val">100%</div>
+            <div class="health-det">1,247 / 1,247 筆</div>
+          </div>
+          <div class="health-item">
+            <div class="health-lbl">部門設定</div>
+            <div class="health-bar"><div class="health-fill" style="width:91.9%;background:var(--warn);"></div></div>
+            <div class="health-val">91.9%</div>
+            <div class="health-det">1,146 / 1,247 筆</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══════════════ 8. 本月異動 ══════════════ -->
+  <section id="changes" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">CHANGES</span>
+      <h2>本月異動</h2>
+      <span class="sec-meta">新增 38 筆 ｜ 修改 12 筆</span>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('new')">新增點位 (38)</div>
+      <div class="tab" onclick="switchTab('mod')">修改點位 (12)</div>
+    </div>
+
+    <div class="tab-pane active" id="tab-new">
+      <div class="card">
+        <div class="tbl-scroll tbl-max">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Tag 名稱</th><th>描述</th><th>Site</th><th>BU</th><th>Zone</th><th>Driver</th><th>負責人</th><th>建立時間</th></tr></thead>
+            <tbody id="newTagsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-mod">
+      <div class="card">
+        <div class="tbl-scroll tbl-max">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Tag 名稱</th><th>描述</th><th>Site</th><th>BU</th><th>Driver</th><th>負責人</th><th>建立時間</th><th>修改時間</th></tr></thead>
+            <tbody id="modTagsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div style="text-align:right;margin-top:48px;font-family:var(--font-mono);font-size:10px;color:var(--fg-4);">
+    Kepmanagementweekly — 月報自動產生 ｜ 資料來源：PostgreSQL ｜ 2026-04-04 09:15:32
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+// Data sourced from PostgreSQL. Replace these values with your pg query results.
+const TOTAL = 1247;
+
+const SYS = [
+  {label:'Allen-Bradley',count:540,color:'#22d3ee'},
+  {label:'Siemens',      count:380,color:'#3b82f6'},
+  {label:'Modbus TCP',   count:210,color:'#a855f7'},
+  {label:'OPC-UA',       count:117,color:'#f59e0b'},
+];
+const SYS_NEW = [
+  {label:'Allen-Bradley',count:18,color:'#22d3ee'},
+  {label:'Siemens',      count:8, color:'#3b82f6'},
+  {label:'Modbus TCP',   count:9, color:'#a855f7'},
+  {label:'OPC-UA',       count:3, color:'#f59e0b'},
+];
+const BU = [
+  {label:'製造部',count:620,color:'#22d3ee'},
+  {label:'設備部',count:380,color:'#3b82f6'},
+  {label:'能源部',count:247,color:'#f59e0b'},
+];
+const BU_NEW = [
+  {label:'製造部',count:22,color:'#22d3ee'},
+  {label:'設備部',count:11,color:'#3b82f6'},
+  {label:'能源部',count:5, color:'#f59e0b'},
+];
+const PROJ = [
+  {label:'PRJ-C-製程控制',count:375,color:'#22d3ee'},
+  {label:'PRJ-A-製造線',  count:320,color:'#3b82f6'},
+  {label:'PRJ-A-能源管理',count:200,color:'#a855f7'},
+  {label:'PRJ-B-公用系統',count:195,color:'#f59e0b'},
+  {label:'PRJ-B-安全監控',count:100,color:'#22c55e'},
+  {label:'PRJ-C-環境監測',count:57, color:'#60a5fa'},
+];
+const SITE = [
+  {label:'Factory-C',count:485,color:'#22d3ee'},
+  {label:'Factory-A',count:450,color:'#3b82f6'},
+  {label:'Factory-B',count:312,color:'#a855f7'},
+];
+const DEPT = [
+  {label:'電氣課',count:405,color:'#22d3ee'},
+  {label:'儀控課',count:312,color:'#3b82f6'},
+  {label:'動力課',count:245,color:'#a855f7'},
+  {label:'製程課',count:185,color:'#f59e0b'},
+  {label:'其他',  count:100,color:'#475569'},
+];
+const TREND = {
+  months:['2025-10','2025-11','2025-12','2026-01','2026-02','2026-03'],
+  total: [1117,     1135,     1158,     1182,     1209,     1247],
+  new_:  [18,       18,       23,       24,       27,       38],
+  mod:   [6,        8,        11,       9,        13,       12],
+};
+const BU_TREND = {
+  months:['Oct','Nov','Dec','Jan','Feb','Mar'],
+  mfg:   [533,544,561,574,598,620],
+  equip: [324,331,338,349,362,380],
+  energy:[260,260,259,259,249,247],
+};
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.color='#64748b';
+Chart.defaults.borderColor='#1e293b';
+Chart.defaults.font.family='"JetBrains Mono",Consolas,monospace';
+Chart.defaults.font.size=11;
+
+const TIP={backgroundColor:'#0f172a',borderColor:'#293548',borderWidth:1,padding:10,titleFont:{size:12},bodyFont:{size:11}};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function doughnut(id,data,denominator){
+  const tot=denominator||data.reduce((s,d)=>s+d.count,0);
+  new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{
+      labels:data.map(d=>d.label),
+      datasets:[{
+        data:data.map(d=>d.count),
+        backgroundColor:data.map(d=>d.color+'88'),
+        borderColor:data.map(d=>d.color),
+        borderWidth:1.5,hoverBorderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'66%',
+      plugins:{
+        legend:{position:'right',labels:{boxWidth:9,padding:12,color:'#94a3b8',font:{size:11}}},
+        tooltip:{...TIP,callbacks:{label:c=>` ${c.label}: ${c.parsed.toLocaleString()} (${(c.parsed/tot*100).toFixed(1)}%)`}}
+      }
+    }
+  });
+}
+
+function distList(id,data,denominator){
+  const tot=denominator||data.reduce((s,d)=>s+d.count,0);
+  const max=Math.max(...data.map(d=>d.count));
+  document.getElementById(id).innerHTML=data.map(d=>`
+    <div class="dist-row">
+      <div class="dist-label"><div class="dist-dot" style="background:${d.color};box-shadow:0 0 5px ${d.color}88;"></div>${d.label}</div>
+      <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:${(d.count/max*100).toFixed(1)}%;background:${d.color};"></div></div>
+      <div class="dist-count">${d.count.toLocaleString()}</div>
+      <div class="dist-pct">${(d.count/tot*100).toFixed(1)}%</div>
+    </div>`).join('');
+}
+
+function hbar(id,data){
+  new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.label),
+      datasets:[{label:'點位數',data:data.map(d=>d.count),
+        backgroundColor:data.map(d=>d.color+'44'),
+        borderColor:data.map(d=>d.color),borderWidth:1.5,borderRadius:4}]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:TIP},
+      scales:{
+        x:{beginAtZero:true,ticks:{color:'#64748b'},grid:{color:'#1e293b'}},
+        y:{ticks:{color:'#94a3b8',font:{size:11.5}},grid:{color:'#1e293b'}}
+      }
+    }
+  });
+}
+
+function miniTrend(id,vals,color){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const max=Math.max(...vals);
+  el.innerHTML=vals.map((v,i)=>{
+    const h=Math.max(4,Math.round(v/max*24));
+    const isCur=i===vals.length-1;
+    return `<div class="mini-bar-s" style="height:${h}px;background:${isCur?color+'55':color+'22'};border-top:1px solid ${color};flex:1;"></div>`;
+  }).join('');
+}
+
+// ── TREND CHART ───────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartTrend'),{
+  type:'line',
+  data:{
+    labels:TREND.months,
+    datasets:[
+      {label:'累積總點位',data:TREND.total,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.07)',
+       fill:true,tension:.4,borderWidth:2,pointBackgroundColor:'#22d3ee',pointBorderColor:'#0f172a',
+       pointBorderWidth:2,pointRadius:5,yAxisID:'y'},
+      {label:'本月新增',data:TREND.new_,type:'bar',backgroundColor:'rgba(59,130,246,.3)',
+       borderColor:'#3b82f6',borderWidth:1,borderRadius:3,yAxisID:'y2'},
+      {label:'本月修改',data:TREND.mod,type:'bar',backgroundColor:'rgba(245,158,11,.25)',
+       borderColor:'#f59e0b',borderWidth:1,borderRadius:3,yAxisID:'y2'},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#94a3b8',boxWidth:10,padding:14}},tooltip:TIP},
+    scales:{
+      x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'}},
+      y:{position:'left',ticks:{color:'#64748b',callback:v=>v.toLocaleString()},grid:{color:'#1e293b'},
+         title:{display:true,text:'累積點位數',color:'#64748b',font:{size:10}}},
+      y2:{position:'right',ticks:{color:'#64748b',precision:0},grid:{drawOnChartArea:false},
+          title:{display:true,text:'新增 / 修改',color:'#64748b',font:{size:10}}}
+    }
+  }
+});
+
+// ── SYSTEM ────────────────────────────────────────────────────────────────────
+doughnut('chartSystem',SYS,TOTAL);
+distList('systemList',SYS,TOTAL);
+distList('systemNewList',SYS_NEW,38);
+
+// ── BU ────────────────────────────────────────────────────────────────────────
+doughnut('chartBU',BU,TOTAL);
+distList('buList',BU,TOTAL);
+distList('buNewList',BU_NEW,38);
+
+new Chart(document.getElementById('chartBUTrend'),{
+  type:'line',
+  data:{
+    labels:BU_TREND.months,
+    datasets:[
+      {label:'製造部',data:BU_TREND.mfg,  borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:4},
+      {label:'設備部',data:BU_TREND.equip, borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.06)',fill:true,tension:.4,borderWidth:2,pointRadius:4},
+      {label:'能源部',data:BU_TREND.energy,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.06)',fill:true,tension:.4,borderWidth:2,pointRadius:4},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#94a3b8',boxWidth:10,padding:12}},tooltip:TIP},
+    scales:{
+      x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'}},
+      y:{ticks:{color:'#64748b',callback:v=>v.toLocaleString()},grid:{color:'#1e293b'}}
+    }
+  }
+});
+
+// ── PROJECT ───────────────────────────────────────────────────────────────────
+hbar('chartProject',PROJ);
+
+// ── SITE ──────────────────────────────────────────────────────────────────────
+doughnut('chartSite',SITE,TOTAL);
+miniTrend('siteTrendC',[430,440,451,461,464,485],'#22d3ee');
+miniTrend('siteTrendA',[400,408,418,428,439,450],'#3b82f6');
+miniTrend('siteTrendB',[287,287,289,293,306,312],'#a855f7');
+
+// ── DEPT ──────────────────────────────────────────────────────────────────────
+hbar('chartDept',DEPT);
+distList('deptList',DEPT,TOTAL);
+
+// ── CHANGE TABLES ─────────────────────────────────────────────────────────────
+const NEW_TAGS=[
+  {tag:'Factory-A.Line1.PLC01.Tank01_Level',        desc:'1號槽液位',          site:'Factory-A',bu:'製造部',zone:'1F', drv:'Allen-Bradley',owner:'王志明',ts:'2026-03-30 09:15'},
+  {tag:'Factory-A.Line1.PLC01.Tank02_Level',        desc:'2號槽液位',          site:'Factory-A',bu:'製造部',zone:'1F', drv:'Allen-Bradley',owner:'王志明',ts:'2026-03-30 09:16'},
+  {tag:'Factory-A.Line1.PLC01.Pump01_Speed',        desc:'泵浦01 轉速',        site:'Factory-A',bu:'製造部',zone:'1F', drv:'Allen-Bradley',owner:'李淑華',ts:'2026-03-30 10:05'},
+  {tag:'Factory-A.Line2.PLC02.Conveyor_Speed',      desc:'輸送帶速度',         site:'Factory-A',bu:'製造部',zone:'2F', drv:'Allen-Bradley',owner:'李淑華',ts:'2026-03-31 08:30'},
+  {tag:'Factory-B.Utility.PLC10.Chiller01_Temp',    desc:'冰水機01 出水溫',    site:'Factory-B',bu:'設備部',zone:'B1',drv:'Siemens',      owner:'陳建國',ts:'2026-03-31 11:00'},
+  {tag:'Factory-B.Utility.PLC10.Chiller01_Power',   desc:'冰水機01 耗電',      site:'Factory-B',bu:'設備部',zone:'B1',drv:'Siemens',      owner:'陳建國',ts:'2026-03-31 11:02'},
+  {tag:'Factory-B.Utility.PLC10.AHU01_Temp',        desc:'AHU01 回風溫度',     site:'Factory-B',bu:'設備部',zone:'3F', drv:'Modbus TCP',  owner:'林俊傑',ts:'2026-04-01 09:45'},
+  {tag:'Factory-B.Utility.PLC10.AHU01_Humidity',    desc:'AHU01 回風濕度',     site:'Factory-B',bu:'設備部',zone:'3F', drv:'Modbus TCP',  owner:'林俊傑',ts:'2026-04-01 09:47'},
+  {tag:'Factory-C.Process.PLC20.Reactor01_Temp',    desc:'反應槽01 溫度',      site:'Factory-C',bu:'製造部',zone:'2F', drv:'OPC-UA',      owner:'張美玲',ts:'2026-04-01 14:00'},
+  {tag:'Factory-C.Process.PLC20.Reactor01_Pressure',desc:'反應槽01 壓力',      site:'Factory-C',bu:'製造部',zone:'2F', drv:'OPC-UA',      owner:'張美玲',ts:'2026-04-01 14:03'},
+  {tag:'Factory-C.Process.PLC20.Mixer01_Torque',    desc:'攪拌機01 扭力',      site:'Factory-C',bu:'製造部',zone:'2F', drv:'OPC-UA',      owner:'張美玲',ts:'2026-04-02 10:20'},
+  {tag:'Factory-A.Energy.PLC05.MainBreaker_kW',     desc:'主電錶 功率',        site:'Factory-A',bu:'設備部',zone:'B1', drv:'Modbus TCP',  owner:'吳建志',ts:'2026-04-02 15:30'},
+  {tag:'Factory-A.Energy.PLC05.MainBreaker_kWh',    desc:'主電錶 累積用電',    site:'Factory-A',bu:'設備部',zone:'B1', drv:'Modbus TCP',  owner:'吳建志',ts:'2026-04-02 15:32'},
+  {tag:'Factory-B.Safety.PLC30.GasDetector01_PPM',  desc:'氣體偵測器01',       site:'Factory-B',bu:'製造部',zone:'1F', drv:'Modbus TCP',  owner:'黃靜宜',ts:'2026-04-03 09:00'},
+  {tag:'Factory-C.Env.PLC35.Boiler01_FlueGas_Temp', desc:'鍋爐01 煙道氣溫',   site:'Factory-C',bu:'能源部',zone:'RF', drv:'Siemens',     owner:'蔡宗翰',ts:'2026-04-03 11:15'},
+];
+const MOD_TAGS=[
+  {tag:'Factory-A.Line1.PLC01.Tank03_Level',          desc:'3號槽液位（量程修正）',     site:'Factory-A',bu:'製造部',drv:'Allen-Bradley',owner:'王志明',created:'2026-02-10 14:00',modified:'2026-03-30 16:30'},
+  {tag:'Factory-B.Utility.PLC10.Chiller02_Temp',      desc:'冰水機02 出水溫（換機型）', site:'Factory-B',bu:'設備部',drv:'Siemens',      owner:'陳建國',created:'2026-01-05 09:00',modified:'2026-03-31 10:00'},
+  {tag:'Factory-C.Process.PLC20.Reactor02_Temp',      desc:'反應槽02 溫度（描述更新）', site:'Factory-C',bu:'製造部',drv:'OPC-UA',       owner:'張美玲',created:'2026-03-01 11:00',modified:'2026-04-01 09:00'},
+  {tag:'Factory-A.Energy.PLC05.SubBreaker02_kW',      desc:'副電錶02 功率（地址修正）', site:'Factory-A',bu:'設備部',drv:'Modbus TCP',   owner:'吳建志',created:'2026-02-20 10:00',modified:'2026-04-02 14:00'},
+  {tag:'Factory-B.Safety.PLC30.FireDetector03_Status',desc:'火警偵測器03（更換點位）',  site:'Factory-B',bu:'設備部',drv:'Allen-Bradley',owner:'黃靜宜',created:'2026-03-15 09:00',modified:'2026-04-02 17:00'},
+  {tag:'Factory-C.Env.PLC35.Boiler01_SteamFlow',      desc:'鍋爐01 蒸汽流量（單位修正）',site:'Factory-C',bu:'能源部',drv:'Siemens',    owner:'蔡宗翰',created:'2026-01-20 08:00',modified:'2026-04-03 13:00'},
+];
+
+function shortTag(s){const p=s.split('.');return p[p.length-1];}
+function pathTag(s){const p=s.split('.');return p.slice(0,3).join('.');}
+
+document.getElementById('newTagsBody').innerHTML=NEW_TAGS.map((t,i)=>`
+  <tr>
+    <td class="td-mono">${i+1}</td>
+    <td><span class="td-code" title="${t.tag}">${shortTag(t.tag)}</span><div class="td-sub">${pathTag(t.tag)}</div></td>
+    <td style="color:var(--fg-2);font-size:12px;">${t.desc}</td>
+    <td><span class="pill p-info"><span class="dot"></span>${t.site.replace('Factory-','F-')}</span></td>
+    <td style="color:var(--fg-2)">${t.bu}</td>
+    <td class="td-mono">${t.zone}</td>
+    <td style="color:var(--fg-2);font-size:12px;">${t.drv}</td>
+    <td>${t.owner}</td>
+    <td class="td-mono" style="color:var(--fg-3);font-size:10.5px;white-space:nowrap;">${t.ts}</td>
+  </tr>`).join('');
+
+document.getElementById('modTagsBody').innerHTML=MOD_TAGS.map((t,i)=>`
+  <tr>
+    <td class="td-mono">${i+1}</td>
+    <td><span class="td-code" title="${t.tag}">${shortTag(t.tag)}</span><div class="td-sub">${pathTag(t.tag)}</div></td>
+    <td style="color:var(--fg-2);font-size:12px;">${t.desc}</td>
+    <td><span class="pill p-info"><span class="dot"></span>${t.site.replace('Factory-','F-')}</span></td>
+    <td style="color:var(--fg-2)">${t.bu}</td>
+    <td style="color:var(--fg-2);font-size:12px;">${t.drv}</td>
+    <td>${t.owner}</td>
+    <td class="td-mono" style="color:var(--fg-3);font-size:10.5px;white-space:nowrap;">${t.created}</td>
+    <td class="td-mono" style="color:var(--warn);font-size:10.5px;white-space:nowrap;">${t.modified}</td>
+  </tr>`).join('');
+
+// ── TAB SWITCH ────────────────────────────────────────────────────────────────
+function switchTab(which){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===(which==='new'?0:1)));
+  document.getElementById('tab-new').classList.toggle('active',which==='new');
+  document.getElementById('tab-mod').classList.toggle('active',which==='mod');
+}
+
+// ── ACTIVE NAV ────────────────────────────────────────────────────────────────
+const SEC_IDS=['overview','system-dist','bu-dist','project-dist','site-dist','dept-dist','health','changes'];
+const NAV_ITEMS=document.querySelectorAll('.nav-item');
+window.addEventListener('scroll',()=>{
+  let cur=SEC_IDS[0];
+  SEC_IDS.forEach(id=>{const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<=90)cur=id;});
+  NAV_ITEMS.forEach(n=>n.classList.toggle('active',n.getAttribute('href')==='#'+cur));
+},{passive:true});
+
+// ── ICONS ─────────────────────────────────────────────────────────────────────
+lucide.createIcons();
+</script>
+</body>
+</html>
