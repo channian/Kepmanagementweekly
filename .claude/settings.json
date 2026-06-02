@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/user/Kepmanagementweekly && python -m black --quiet . 2>/dev/null; python -m ruff check --fix --quiet . 2>/dev/null; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
