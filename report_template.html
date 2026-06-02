@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KPM 點位管理月報 — {{ year }}年{{ month }}月</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --bg-0:#05070d; --bg-1:#0a0f1a; --bg-2:#0f172a; --bg-3:#172033; --bg-4:#1e293b;
+  --bg-grid:rgba(96,165,250,0.05);
+  --fg-1:#e6edf7; --fg-2:#94a3b8; --fg-3:#64748b; --fg-4:#3f4b63;
+  --border-1:#1e293b; --border-2:#293548; --border-3:#3b4a66;
+  --accent:#22d3ee; --accent-soft:rgba(34,211,238,0.12); --accent-glow:rgba(34,211,238,0.35);
+  --blue:#3b82f6; --blue-soft:rgba(59,130,246,0.12);
+  --ok:#22c55e; --ok-bg:rgba(34,197,94,0.1); --ok-glow:rgba(34,197,94,0.35);
+  --warn:#f59e0b; --warn-bg:rgba(245,158,11,0.1); --warn-glow:rgba(245,158,11,0.35);
+  --err:#ef4444;
+  --info:#60a5fa; --info-bg:rgba(96,165,250,0.1);
+  --muted:#475569; --muted-bg:rgba(71,85,105,0.15);
+  --shadow-1:0 2px 8px rgba(0,0,0,.5),0 1px 2px rgba(0,0,0,.3);
+  --r-lg:14px;
+  --font-sans:"Inter",-apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;
+  --font-mono:"JetBrains Mono","Cascadia Code",Consolas,monospace;
+  --ease:cubic-bezier(0.4,0,0.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:rgb(6,25,67);color:var(--fg-1);font-family:var(--font-sans);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--bg-grid) 1px,transparent 1px),linear-gradient(90deg,var(--bg-grid) 1px,transparent 1px);
+  background-size:32px 32px;background-attachment:fixed;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg-1);}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border-3);}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+.sidebar{background:rgb(6,25,67);border-right:1px solid var(--border-1);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;border-bottom:1px solid var(--border-1);margin-bottom:12px;}
+.bmark{width:36px;height:36px;border-radius:10px;background:var(--bg-3);border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:var(--fg-1);letter-spacing:-.02em;position:relative;flex-shrink:0;}
+.bmark .pdot{position:absolute;bottom:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent-glow);animation:pulse 1.6s ease-in-out infinite;}
+.btitle{font-weight:700;font-size:14px;color:var(--fg-1);line-height:1.2;}
+.bsub{font-family:var(--font-mono);font-size:9px;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-top:2px;}
+.nav-sec{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-4);padding:12px 10px 5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;color:var(--fg-2);font-weight:500;font-size:13px;cursor:pointer;transition:all 140ms var(--ease);position:relative;text-decoration:none;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+.nav-item:hover{background:var(--bg-3);color:var(--fg-1);}
+.nav-item.active{background:var(--accent-soft);color:var(--accent);}
+.nav-item.active::before{content:'';position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0;box-shadow:0 0 8px var(--accent-glow);}
+.nav-chip{margin-left:auto;font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:999px;background:var(--bg-3);color:var(--fg-3);}
+.sidebar-footer{margin-top:auto;padding-top:12px;border-top:1px solid var(--border-1);}
+.main{display:flex;flex-direction:column;min-width:0;}
+.topbar{height:60px;background:rgb(5,25,67);border-bottom:1px solid var(--border-1);display:flex;align-items:center;padding:0 28px;gap:14px;position:sticky;top:0;z-index:20;}
+.topbar h1{font-size:17px;font-weight:700;color:var(--fg-1);letter-spacing:-.01em;}
+.topbar-sub{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:2px;}
+.top-spacer{flex:1;}
+.live-badge{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:11px;color:var(--fg-2);padding:5px 12px;border:1px solid var(--border-2);border-radius:999px;background:var(--bg-1);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 5px var(--ok-glow);}
+.btn-ghost{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;background:transparent;border:1.5px solid var(--border-2);color:var(--fg-2);cursor:pointer;transition:all 160ms var(--ease);font-family:var(--font-sans);}
+.btn-ghost:hover{color:var(--fg-1);border-color:var(--border-3);}
+.btn-ghost svg{width:13px;height:13px;}
+.content{padding:28px 32px 72px;}
+.sec{scroll-margin-top:80px;}
+.sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.sec-hd h2{font-size:19px;font-weight:700;letter-spacing:-.01em;}
+.sec-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-family:var(--font-mono);padding:2px 8px;background:var(--accent-soft);border-radius:999px;}
+.sec-meta{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);padding:2px 8px;border:1px solid var(--border-1);border-radius:999px;}
+.sec-divider{height:1px;background:var(--border-1);margin:36px 0;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-1);position:relative;overflow:hidden;}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0;}
+.kpi.c-accent::after{background:linear-gradient(90deg,var(--accent) 0%,transparent 80%);}
+.kpi.c-blue::after{background:linear-gradient(90deg,var(--blue) 0%,transparent 80%);}
+.kpi.c-ok::after{background:linear-gradient(90deg,var(--ok) 0%,transparent 80%);}
+.kpi.c-warn::after{background:linear-gradient(90deg,var(--warn) 0%,transparent 80%);}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:10px;}
+.kpi-val{font-family:var(--font-mono);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1;margin-bottom:8px;}
+.kpi.c-accent .kpi-val{color:var(--accent);}
+.kpi.c-blue .kpi-val{color:var(--blue);}
+.kpi.c-ok .kpi-val{color:var(--ok);}
+.kpi.c-warn .kpi-val{color:var(--warn);}
+.kpi-delta{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);display:flex;align-items:center;gap:4px;}
+.up{color:var(--ok);} .dn{color:var(--err);}
+.card{background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);box-shadow:var(--shadow-1);overflow:hidden;}
+.card-hd{display:flex;align-items:center;gap:9px;padding:14px 18px;border-bottom:1px solid var(--border-1);}
+.card-hd .cht{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-2);}
+.card-hd .ic{color:var(--accent);display:flex;}
+.card-hd .ic svg{width:15px;height:15px;}
+.card-hd .sp{flex:1;}
+.card-hd .cbadge{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);padding:2px 8px;border:1px solid var(--border-1);border-radius:999px;}
+.card-body{padding:18px 20px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.g-chart{display:grid;grid-template-columns:1fr 1.7fr;gap:14px;margin-bottom:14px;}
+.cw{position:relative;height:240px;}
+.cw-md{position:relative;height:280px;}
+.cw-lg{position:relative;height:340px;}
+.dist-list{display:flex;flex-direction:column;gap:9px;}
+.dist-row{display:grid;grid-template-columns:1fr 1fr auto auto;align-items:center;gap:8px;}
+.dist-label{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--fg-1);}
+.dist-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dist-bar-wrap{height:3px;background:var(--bg-4);border-radius:999px;overflow:hidden;}
+.dist-bar-fill{height:100%;border-radius:999px;}
+.dist-count{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);text-align:right;font-variant-numeric:tabular-nums;min-width:36px;}
+.dist-pct{font-family:var(--font-mono);font-size:10px;color:var(--fg-4);text-align:right;min-width:38px;}
+.hmap{width:100%;border-collapse:collapse;font-size:12px;}
+.hmap th{padding:8px 10px;background:var(--bg-1);color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;text-align:center;border:1px solid var(--border-1);}
+.hmap th:first-child{text-align:left;}
+.hmap td{padding:10px 12px;border:1px solid var(--border-1);text-align:center;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.hmap td:first-child{text-align:left;font-family:var(--font-sans);font-size:13px;color:var(--fg-1);}
+.hm0{background:var(--bg-2);color:var(--fg-4);}
+.hm1{background:rgba(34,211,238,.04);color:var(--fg-3);}
+.hm2{background:rgba(34,211,238,.09);color:var(--fg-2);}
+.hm3{background:rgba(34,211,238,.16);color:var(--accent);}
+.hm4{background:rgba(34,211,238,.25);color:var(--accent);font-weight:600;}
+.hm-tot td{background:var(--bg-3);color:var(--fg-2);font-weight:600;border-top:2px solid var(--border-2);}
+.hm-tot td:first-child{color:var(--fg-2);}
+.tbl-scroll{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tbl thead th{background:var(--bg-1);padding:9px 13px;text-align:left;font-weight:600;color:var(--fg-3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border-1);white-space:nowrap;}
+.tbl tbody td{padding:10px 13px;border-bottom:1px solid var(--border-1);color:var(--fg-1);}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover{background:var(--bg-3);}
+.td-mono{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);}
+.td-code{font-family:var(--font-mono);font-size:11px;color:#79c0ff;background:rgba(121,192,255,.09);padding:1px 5px;border-radius:4px;display:inline-block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+.td-sub{font-family:var(--font-mono);font-size:10px;color:var(--fg-4);margin-top:2px;}
+.td-r{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;font-family:var(--font-mono);letter-spacing:.02em;white-space:nowrap;}
+.pill .dot{width:5px;height:5px;border-radius:50%;}
+.p-ok{background:var(--ok-bg);color:var(--ok);}
+.p-ok .dot{background:var(--ok);box-shadow:0 0 4px var(--ok-glow);}
+.p-info{background:var(--info-bg);color:var(--info);}
+.p-info .dot{background:var(--info);}
+.p-warn{background:var(--warn-bg);color:var(--warn);}
+.p-warn .dot{background:var(--warn);}
+.p-muted{background:var(--muted-bg);color:var(--fg-2);}
+.p-muted .dot{background:var(--muted);}
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.health-item{background:var(--bg-3);border-radius:8px;padding:14px 16px;border:1px solid var(--border-1);}
+.health-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3);margin-bottom:8px;}
+.health-bar{height:5px;background:var(--border-1);border-radius:999px;overflow:hidden;margin-bottom:6px;}
+.health-fill{height:100%;border-radius:999px;}
+.health-val{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--fg-1);}
+.health-det{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:2px;}
+.site-card{background:var(--bg-2);border:1px solid var(--border-1);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-1);}
+.site-big{font-family:var(--font-mono);font-size:38px;font-weight:600;letter-spacing:-.02em;line-height:1;margin-bottom:4px;}
+.site-sub{font-size:11px;color:var(--fg-3);margin-bottom:14px;}
+.mini-trend{display:flex;align-items:flex-end;gap:2px;height:28px;}
+.mini-bar-s{flex:1;border-radius:2px 2px 0 0;}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border-1);margin-bottom:18px;}
+.tab{padding:9px 18px;font-size:13px;font-weight:600;color:var(--fg-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 140ms;user-select:none;}
+.tab:hover{color:var(--fg-1);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+.tbl-max{max-height:380px;overflow-y:auto;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media print{
+  .sidebar,.topbar,.btn-ghost{display:none!important;}
+  .app{display:block;}
+  .content{padding:12px;}
+  body{background:#fff!important;color:#000!important;background-image:none!important;}
+  .card,.kpi,.site-card{border:1px solid #ddd;box-shadow:none;background:#fff;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ─────────────── SIDEBAR ─────────────── -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="bmark">KPM<div class="pdot"></div></div>
+    <div>
+      <div class="btitle">KPM Monitor</div>
+      <div class="bsub">Monthly</div>
+    </div>
+  </div>
+  <div class="nav-sec">報告章節</div>
+  <a class="nav-item active" href="#overview"><i data-lucide="layout-dashboard"></i>月度總覽</a>
+  <a class="nav-item" href="#system-dist"><i data-lucide="cpu"></i>系統分佈<span class="nav-chip">{{ sys_dist|length }}</span></a>
+  <a class="nav-item" href="#bu-dist"><i data-lucide="building-2"></i>BU 分佈<span class="nav-chip">{{ bu_dist|length }}</span></a>
+  <a class="nav-item" href="#project-dist"><i data-lucide="folder-open"></i>專案分佈<span class="nav-chip">{{ proj_dist|length }}</span></a>
+  <a class="nav-item" href="#site-dist"><i data-lucide="map-pin"></i>廠區分析<span class="nav-chip">{{ site_dist|length }}</span></a>
+  <a class="nav-item" href="#dept-dist"><i data-lucide="users"></i>部門排名<span class="nav-chip">{{ dept_dist|length }}</span></a>
+  <a class="nav-item" href="#health"><i data-lucide="shield-check"></i>Tag 健康度</a>
+  <a class="nav-item" href="#changes"><i data-lucide="git-commit-horizontal"></i>本月異動<span class="nav-chip">{{ new_tags|length + mod_tags|length }}</span></a>
+  <div class="sidebar-footer">
+    <div class="nav-sec" style="padding-top:0;">資料來源</div>
+    <a class="nav-item" href="#"><i data-lucide="database"></i>PostgreSQL</a>
+  </div>
+</aside>
+
+<!-- ─────────────── MAIN ─────────────── -->
+<div class="main">
+  <header class="topbar">
+    <div>
+      <h1>點位管理月報</h1>
+      <div class="topbar-sub">KepwareMonitorOPC / 月報 / {{ label }}</div>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="live-badge"><div class="live-dot"></div>{{ year }}年{{ month }}月報告 ｜ 產生：{{ generated_at }}</div>
+    <button class="btn-ghost" onclick="window.print()"><i data-lucide="printer"></i>列印 / PDF</button>
+  </header>
+
+  <div class="content">
+
+  <!-- ══ 1. 月度總覽 ══ -->
+  <section id="overview" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">OVERVIEW</span>
+      <h2>月度總覽</h2>
+      <span class="sec-meta">{{ year }}-{{ "%02d"|format(month) }}-01 → {{ year }}-{{ "%02d"|format(month) }}-{{ [28,29,30,31][month-1] if month != 2 else 28 }}</span>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi c-accent">
+        <div class="kpi-label">目前總點位數</div>
+        <div class="kpi-val">{{ "{:,}".format(total_now) }}</div>
+        <div class="kpi-delta">較上月
+          {% if delta_total >= 0 %}<span class="up">↑ +{{ delta_total }}</span>{% else %}<span class="dn">↓ {{ delta_total }}</span>{% endif %}
+          &ensp;({{ delta_total_pct }}%)
+        </div>
+      </div>
+      <div class="kpi c-blue">
+        <div class="kpi-label">本月新增</div>
+        <div class="kpi-val">+{{ new_this }}</div>
+        <div class="kpi-delta">上月 +{{ new_prev }} &ensp;
+          {% if new_delta_pct >= 0 %}<span class="up">↑ {{ new_delta_pct }}%</span>{% else %}<span class="dn">↓ {{ new_delta_pct|abs }}%</span>{% endif %}
+        </div>
+      </div>
+      <div class="kpi c-ok">
+        <div class="kpi-label">本月修改</div>
+        <div class="kpi-val">{{ mod_this }}</div>
+        <div class="kpi-delta">上月 {{ mod_prev }} &ensp;
+          {% if mod_delta_pct >= 0 %}<span class="up">↑ {{ mod_delta_pct }}%</span>{% else %}<span class="dn">↓ {{ mod_delta_pct|abs }}%</span>{% endif %}
+        </div>
+      </div>
+      <div class="kpi c-warn">
+        <div class="kpi-label">資料完整率</div>
+        <div class="kpi-val">{{ overall_health }}<span style="font-size:17px">%</span></div>
+        <div class="kpi-delta">各欄位完整率平均值</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="trending-up"></i></div>
+        <div class="cht">月度成長趨勢</div>
+        <div class="sp"></div>
+        <div class="cbadge">過去 6 個月</div>
+      </div>
+      <div class="card-body">
+        <div class="cw-lg"><canvas id="chartTrend"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 2. 系統分佈 ══ -->
+  <section id="system-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">SYSTEM</span>
+      <h2>系統分佈</h2>
+      <span class="sec-meta">依 Driver Type 統計</span>
+    </div>
+    <div class="g-chart">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="pie-chart"></i></div><div class="cht">Driver 佔比</div></div>
+        <div class="card-body"><div class="cw"><canvas id="chartSystem"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="bar-chart-2"></i></div>
+          <div class="cht">點位數排名</div>
+          <div class="sp"></div>
+          <div class="cbadge">Total {{ "{:,}".format(total_now) }}</div>
+        </div>
+        <div class="card-body">
+          <div class="dist-list">
+            {% set max_sys = sys_dist|map(attribute='count')|max %}
+            {% for d in sys_dist %}
+            <div class="dist-row">
+              <div class="dist-label"><div class="dist-dot" style="background:{{ d.color }};box-shadow:0 0 5px {{ d.color }}88;"></div>{{ d.label }}</div>
+              <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:{{ (d.count/max_sys*100)|round(1) }}%;background:{{ d.color }};"></div></div>
+              <div class="dist-count">{{ "{:,}".format(d.count) }}</div>
+              <div class="dist-pct">{{ (d.count/total_now*100)|round(1) }}%</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if sys_new %}
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-1);">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:10px;">本月新增 by Driver</div>
+            <div class="dist-list">
+              {% set max_sn = sys_new|map(attribute='count')|max %}
+              {% for d in sys_new %}
+              <div class="dist-row">
+                <div class="dist-label"><div class="dist-dot" style="background:{{ d.color }};box-shadow:0 0 5px {{ d.color }}88;"></div>{{ d.label }}</div>
+                <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:{{ (d.count/max_sn*100)|round(1) }}%;background:{{ d.color }};"></div></div>
+                <div class="dist-count">{{ d.count }}</div>
+                <div class="dist-pct">{{ (d.count/new_this*100)|round(1) if new_this else 0 }}%</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="grid-3x3"></i></div>
+        <div class="cht">系統 × BU 分佈矩陣</div>
+        <div class="sp"></div>
+        <div class="cbadge">色深 = 點位密度</div>
+      </div>
+      <div class="card-body">
+        <div class="tbl-scroll">
+          <table class="hmap">
+            <thead>
+              <tr>
+                <th>系統 / BU</th>
+                {% for bu in bu_labels_m %}<th>{{ bu }}</th>{% endfor %}
+                <th>合計</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in sys_bu_matrix %}
+              <tr>
+                <td>{{ row.sys }}</td>
+                {% for v in row.vals %}<td class="{{ v|hm }}">{{ v }}</td>{% endfor %}
+                <td class="{{ row.total|hm }}">{{ row.total }}</td>
+              </tr>
+              {% endfor %}
+              <tr class="hm-tot">
+                <td>合計</td>
+                {% for t in sys_bu_totals %}<td>{{ t }}</td>{% endfor %}
+                <td>{{ "{:,}".format(total_now) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 3. BU 分佈 ══ -->
+  <section id="bu-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">BU</span>
+      <h2>BU 分佈</h2>
+      <span class="sec-meta">依事業單位統計</span>
+    </div>
+    <div class="g-chart">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="pie-chart"></i></div><div class="cht">BU 佔比</div></div>
+        <div class="card-body"><div class="cw"><canvas id="chartBU"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="bar-chart-2"></i></div>
+          <div class="cht">BU 點位統計</div>
+          <div class="sp"></div>
+          <div class="cbadge">{{ bu_dist|length }} 個 BU</div>
+        </div>
+        <div class="card-body">
+          <div class="dist-list">
+            {% set max_bu = bu_dist|map(attribute='count')|max %}
+            {% for d in bu_dist %}
+            <div class="dist-row">
+              <div class="dist-label"><div class="dist-dot" style="background:{{ d.color }};box-shadow:0 0 5px {{ d.color }}88;"></div>{{ d.label }}</div>
+              <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:{{ (d.count/max_bu*100)|round(1) }}%;background:{{ d.color }};"></div></div>
+              <div class="dist-count">{{ "{:,}".format(d.count) }}</div>
+              <div class="dist-pct">{{ (d.count/total_now*100)|round(1) }}%</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if bu_new %}
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-1);">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);margin-bottom:10px;">本月新增 by BU</div>
+            <div class="dist-list">
+              {% set max_bn = bu_new|map(attribute='count')|max %}
+              {% for d in bu_new %}
+              <div class="dist-row">
+                <div class="dist-label"><div class="dist-dot" style="background:{{ d.color }};box-shadow:0 0 5px {{ d.color }}88;"></div>{{ d.label }}</div>
+                <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:{{ (d.count/max_bn*100)|round(1) }}%;background:{{ d.color }};"></div></div>
+                <div class="dist-count">{{ d.count }}</div>
+                <div class="dist-pct">{{ (d.count/new_this*100)|round(1) if new_this else 0 }}%</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="layers"></i></div>
+        <div class="cht">BU 累積趨勢（過去 6 個月）</div>
+        <div class="sp"></div>
+        <div class="cbadge">Stacked area</div>
+      </div>
+      <div class="card-body">
+        <div class="cw-md"><canvas id="chartBUTrend"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 4. 專案分佈 ══ -->
+  <section id="project-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">PROJECT</span>
+      <h2>專案分佈</h2>
+      <span class="sec-meta">依 Node Name 統計</span>
+    </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="bar-chart-horizontal"></i></div>
+        <div class="cht">各專案點位數</div>
+        <div class="sp"></div>
+        <div class="cbadge">{{ proj_dist|length }} 個專案</div>
+      </div>
+      <div class="card-body">
+        <div class="cw-md"><canvas id="chartProject"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="table"></i></div>
+        <div class="cht">專案點位明細</div>
+      </div>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>#</th><th>專案</th><th>廠區</th><th>BU</th><th style="text-align:right">點位數</th><th style="text-align:right">佔比</th><th style="text-align:right">本月新增</th><th>狀態</th></tr>
+          </thead>
+          <tbody>
+            {% for p in proj_dist %}
+            <tr>
+              <td class="td-mono">{{ loop.index }}</td>
+              <td><span class="td-code">{{ p.label }}</span></td>
+              <td style="color:var(--fg-2)">{{ p.site }}</td>
+              <td style="color:var(--fg-2)">{{ p.bu }}</td>
+              <td class="td-r">{{ "{:,}".format(p.count) }}</td>
+              <td class="td-r" style="color:var(--fg-3)">{{ (p.count/total_now*100)|round(1) }}%</td>
+              <td class="td-r">
+                {% if p.new_cnt > 0 %}<span style="color:var(--ok);font-family:var(--font-mono)">+{{ p.new_cnt }}</span>
+                {% else %}<span style="color:var(--fg-4);font-family:var(--font-mono)">0</span>{% endif %}
+              </td>
+              <td>
+                {% if p.new_cnt > 0 %}<span class="pill p-ok"><span class="dot"></span>ACTIVE</span>
+                {% else %}<span class="pill p-muted"><span class="dot"></span>STABLE</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 5. 廠區分析 ══ -->
+  <section id="site-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">SITE</span>
+      <h2>廠區分析</h2>
+      <span class="sec-meta">依廠區統計</span>
+    </div>
+    <div class="g3" style="margin-bottom:14px;">
+      {% for s in site_dist %}
+      <div class="site-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-3);">{{ s.label }}</div>
+          {% if loop.first %}<span class="pill p-ok"><span class="dot"></span>LEADER</span>{% endif %}
+        </div>
+        <div class="site-big" style="color:{{ s.color }};">{{ "{:,}".format(s.count) }}</div>
+        <div class="site-sub">{{ (s.count/total_now*100)|round(1) }}% 總點位</div>
+        <div class="mini-trend" id="siteTrend{{ loop.index }}"></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--fg-2);font-family:var(--font-mono);">
+          <span style="color:var(--ok);">+{{ s.new_cnt }}</span> 本月新增
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="pie-chart"></i></div><div class="cht">廠區佔比</div></div>
+        <div class="card-body"><div class="cw"><canvas id="chartSite"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="grid-3x3"></i></div>
+          <div class="cht">廠區 × BU 點位矩陣</div>
+        </div>
+        <div class="card-body">
+          <div class="tbl-scroll">
+            <table class="hmap">
+              <thead>
+                <tr>
+                  <th>廠區 / BU</th>
+                  {% for bu in bu_labels_m %}<th>{{ bu }}</th>{% endfor %}
+                  <th>合計</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in site_bu_matrix %}
+                <tr>
+                  <td>{{ row.site }}</td>
+                  {% for v in row.vals %}<td class="{{ v|hm_s }}">{{ v if v else '—' }}</td>{% endfor %}
+                  <td class="{{ row.total|hm_s }}">{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="hm-tot">
+                  <td>合計</td>
+                  {% for t in site_bu_totals %}<td>{{ t }}</td>{% endfor %}
+                  <td>{{ "{:,}".format(total_now) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 6. 部門排名 ══ -->
+  <section id="dept-dist" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">DEPARTMENT</span>
+      <h2>部門排名</h2>
+      <span class="sec-meta">依部門統計負責點位數</span>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hd"><div class="ic"><i data-lucide="bar-chart-horizontal"></i></div><div class="cht">部門點位數</div></div>
+        <div class="card-body"><div class="cw-md"><canvas id="chartDept"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="ic"><i data-lucide="users"></i></div>
+          <div class="cht">部門統計明細</div>
+          <div class="sp"></div>
+          <div class="cbadge">{{ dept_dist|length }} 個部門</div>
+        </div>
+        <div class="card-body">
+          <div class="dist-list">
+            {% set max_dept = dept_dist|map(attribute='count')|max %}
+            {% for d in dept_dist %}
+            <div class="dist-row">
+              <div class="dist-label"><div class="dist-dot" style="background:{{ d.color }};box-shadow:0 0 5px {{ d.color }}88;"></div>{{ d.label }}</div>
+              <div class="dist-bar-wrap"><div class="dist-bar-fill" style="width:{{ (d.count/max_dept*100)|round(1) }}%;background:{{ d.color }};"></div></div>
+              <div class="dist-count">{{ "{:,}".format(d.count) }}</div>
+              <div class="dist-pct">{{ (d.count/total_now*100)|round(1) }}%</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 7. Tag 健康度 ══ -->
+  <section id="health" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">HEALTH</span>
+      <h2>Tag 健康度</h2>
+      <span class="sec-meta">資料完整性分析</span>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="ic"><i data-lucide="shield-check"></i></div>
+        <div class="cht">資料完整率</div>
+        <div class="sp"></div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--ok);">{{ overall_health }}%</div>
+      </div>
+      <div class="card-body">
+        <div class="health-grid">
+          {% for h in health_bars %}
+          {% set bar_color = "var(--accent)" if h.pct >= 98 else ("var(--ok)" if h.pct >= 95 else ("var(--warn)" if h.pct >= 85 else "var(--err)")) %}
+          <div class="health-item">
+            <div class="health-lbl">{{ h.label }}</div>
+            <div class="health-bar"><div class="health-fill" style="width:{{ h.pct }}%;background:{{ bar_color }};"></div></div>
+            <div class="health-val">{{ h.pct }}%</div>
+            <div class="health-det">{{ "{:,}".format(h.filled) }} / {{ "{:,}".format(h.total) }} 筆</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="sec-divider"></div>
+
+  <!-- ══ 8. 本月異動 ══ -->
+  <section id="changes" class="sec">
+    <div class="sec-hd">
+      <span class="sec-label">CHANGES</span>
+      <h2>本月異動</h2>
+      <span class="sec-meta">新增 {{ new_tags|length }} 筆 ｜ 修改 {{ mod_tags|length }} 筆</span>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('new')">新增點位 ({{ new_tags|length }})</div>
+      <div class="tab" onclick="switchTab('mod')">修改點位 ({{ mod_tags|length }})</div>
+    </div>
+    <div class="tab-pane active" id="tab-new">
+      <div class="card">
+        <div class="tbl-scroll tbl-max">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Tag 名稱</th><th>描述</th><th>Site</th><th>BU</th><th>Zone</th><th>Driver</th><th>負責人</th><th>建立時間</th></tr></thead>
+            <tbody>
+              {% for t in new_tags %}
+              {% set parts = t.tagname.split('.') %}
+              <tr>
+                <td class="td-mono">{{ loop.index }}</td>
+                <td><span class="td-code" title="{{ t.tagname }}">{{ parts[-1] }}</span>
+                    <div class="td-sub">{{ parts[:3]|join('.') }}</div></td>
+                <td style="color:var(--fg-2);font-size:12px;">{{ t.description or '—' }}</td>
+                <td><span class="pill p-info"><span class="dot"></span>{{ t.site or '—' }}</span></td>
+                <td style="color:var(--fg-2)">{{ t.bu or '—' }}</td>
+                <td class="td-mono">{{ t.zone or '—' }}</td>
+                <td style="color:var(--fg-2);font-size:12px;">{{ t.driver_type or '—' }}</td>
+                <td>{{ t.owner or '—' }}</td>
+                <td class="td-mono" style="color:var(--fg-3);font-size:10.5px;white-space:nowrap;">{{ t.created_date.strftime('%Y-%m-%d %H:%M') if t.created_date else '—' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="9" style="text-align:center;color:var(--fg-4);padding:24px;">本月無新增點位</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-mod">
+      <div class="card">
+        <div class="tbl-scroll tbl-max">
+          <table class="tbl">
+            <thead><tr><th>#</th><th>Tag 名稱</th><th>描述</th><th>Site</th><th>BU</th><th>Driver</th><th>負責人</th><th>建立時間</th><th>修改時間</th></tr></thead>
+            <tbody>
+              {% for t in mod_tags %}
+              {% set parts = t.tagname.split('.') %}
+              <tr>
+                <td class="td-mono">{{ loop.index }}</td>
+                <td><span class="td-code" title="{{ t.tagname }}">{{ parts[-1] }}</span>
+                    <div class="td-sub">{{ parts[:3]|join('.') }}</div></td>
+                <td style="color:var(--fg-2);font-size:12px;">{{ t.description or '—' }}</td>
+                <td><span class="pill p-info"><span class="dot"></span>{{ t.site or '—' }}</span></td>
+                <td style="color:var(--fg-2)">{{ t.bu or '—' }}</td>
+                <td style="color:var(--fg-2);font-size:12px;">{{ t.driver_type or '—' }}</td>
+                <td>{{ t.owner or '—' }}</td>
+                <td class="td-mono" style="color:var(--fg-3);font-size:10.5px;white-space:nowrap;">{{ t.created_date.strftime('%Y-%m-%d %H:%M') if t.created_date else '—' }}</td>
+                <td class="td-mono" style="color:var(--warn);font-size:10.5px;white-space:nowrap;">{{ t.updated_date.strftime('%Y-%m-%d %H:%M') if t.updated_date else '—' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="9" style="text-align:center;color:var(--fg-4);padding:24px;">本月無修改點位</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div style="text-align:right;margin-top:48px;font-family:var(--font-mono);font-size:10px;color:var(--fg-4);">
+    Kepmanagementweekly — 月報自動產生 ｜ 資料來源：PostgreSQL ｜ {{ generated_at }}
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ── Chart defaults ────────────────────────────────────────────────────────────
+Chart.defaults.color='#64748b';
+Chart.defaults.borderColor='#1e293b';
+Chart.defaults.font.family='"JetBrains Mono",Consolas,monospace';
+Chart.defaults.font.size=11;
+const TIP={backgroundColor:'#0f172a',borderColor:'#293548',borderWidth:1,padding:10,titleFont:{size:12},bodyFont:{size:11}};
+
+// ── Data from Python ──────────────────────────────────────────────────────────
+const TOTAL = {{ total_now }};
+
+const SYS = {{ sys_dist | tojson }};
+const BU  = {{ bu_dist  | tojson }};
+const PROJ= {{ proj_dist| tojson }};
+const SITE= {{ site_dist| tojson }};
+const DEPT= {{ dept_dist| tojson }};
+
+const TREND = {
+  months: {{ trend_months | tojson }},
+  total:  {{ trend_total  | tojson }},
+  new_:   {{ trend_new    | tojson }},
+  mod:    {{ trend_mod    | tojson }},
+};
+const BU_TREND = {
+  months: {{ bu_trend_months | tojson }},
+  {% for b in bu_dist %}
+  "{{ b.label }}": {{ bu_trend_data[b.label] | tojson }},
+  {% endfor %}
+};
+const SITE_TREND = {
+  {% for s in site_dist %}
+  "{{ s.label }}": {{ site_trend_data[s.label] | tojson }},
+  {% endfor %}
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function doughnut(id, data, total){
+  new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{
+      labels: data.map(d=>d.label),
+      datasets:[{
+        data: data.map(d=>d.count),
+        backgroundColor: data.map(d=>d.color+'88'),
+        borderColor: data.map(d=>d.color),
+        borderWidth:1.5,hoverBorderWidth:2,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'66%',
+      plugins:{
+        legend:{position:'right',labels:{boxWidth:9,padding:12,color:'#94a3b8',font:{size:11}}},
+        tooltip:{...TIP,callbacks:{label:c=>` ${c.label}: ${c.parsed.toLocaleString()} (${(c.parsed/total*100).toFixed(1)}%)`}}
+      }
+    }
+  });
+}
+
+function hbar(id, data){
+  new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{
+      labels: data.map(d=>d.label),
+      datasets:[{label:'點位數',data:data.map(d=>d.count),
+        backgroundColor:data.map(d=>d.color+'44'),
+        borderColor:data.map(d=>d.color),borderWidth:1.5,borderRadius:4}]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:TIP},
+      scales:{
+        x:{beginAtZero:true,ticks:{color:'#64748b'},grid:{color:'#1e293b'}},
+        y:{ticks:{color:'#94a3b8',font:{size:11.5}},grid:{color:'#1e293b'}}
+      }
+    }
+  });
+}
+
+function miniTrend(id, vals, color){
+  const el=document.getElementById(id);
+  if(!el||!vals||!vals.length) return;
+  const max=Math.max(...vals);
+  el.innerHTML=vals.map((v,i)=>{
+    const h=Math.max(4,Math.round(v/max*24));
+    const isCur=i===vals.length-1;
+    return `<div class="mini-bar-s" style="height:${h}px;background:${isCur?color+'55':color+'22'};border-top:1px solid ${color};flex:1;"></div>`;
+  }).join('');
+}
+
+// ── Trend ─────────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartTrend'),{
+  type:'line',
+  data:{
+    labels: TREND.months,
+    datasets:[
+      {label:'累積總點位',data:TREND.total,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.07)',
+       fill:true,tension:.4,borderWidth:2,pointBackgroundColor:'#22d3ee',pointBorderColor:'#0f172a',
+       pointBorderWidth:2,pointRadius:5,yAxisID:'y'},
+      {label:'本月新增',data:TREND.new_,type:'bar',backgroundColor:'rgba(59,130,246,.3)',
+       borderColor:'#3b82f6',borderWidth:1,borderRadius:3,yAxisID:'y2'},
+      {label:'本月修改',data:TREND.mod,type:'bar',backgroundColor:'rgba(245,158,11,.25)',
+       borderColor:'#f59e0b',borderWidth:1,borderRadius:3,yAxisID:'y2'},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#94a3b8',boxWidth:10,padding:14}},tooltip:TIP},
+    scales:{
+      x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'}},
+      y:{position:'left',ticks:{color:'#64748b',callback:v=>v.toLocaleString()},grid:{color:'#1e293b'},
+         title:{display:true,text:'累積點位數',color:'#64748b',font:{size:10}}},
+      y2:{position:'right',ticks:{color:'#64748b',precision:0},grid:{drawOnChartArea:false},
+          title:{display:true,text:'新增 / 修改',color:'#64748b',font:{size:10}}}
+    }
+  }
+});
+
+// ── System / BU doughnuts ─────────────────────────────────────────────────────
+doughnut('chartSystem', SYS, TOTAL);
+doughnut('chartBU',     BU,  TOTAL);
+doughnut('chartSite',   SITE,TOTAL);
+
+// ── BU trend ──────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartBUTrend'),{
+  type:'line',
+  data:{
+    labels: BU_TREND.months,
+    datasets: BU.map(b=>({
+      label: b.label,
+      data: BU_TREND[b.label] || [],
+      borderColor: b.color,
+      backgroundColor: b.color+'14',
+      fill:true,tension:.4,borderWidth:2,pointRadius:4,
+    }))
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{color:'#94a3b8',boxWidth:10,padding:12}},tooltip:TIP},
+    scales:{
+      x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'}},
+      y:{ticks:{color:'#64748b',callback:v=>v.toLocaleString()},grid:{color:'#1e293b'}}
+    }
+  }
+});
+
+// ── Project / Dept hbar ───────────────────────────────────────────────────────
+hbar('chartProject', PROJ);
+hbar('chartDept',    DEPT);
+
+// ── Site mini-trends ──────────────────────────────────────────────────────────
+SITE.forEach((s,i)=>{
+  miniTrend('siteTrend'+(i+1), SITE_TREND[s.label], s.color);
+});
+
+// ── Tab switch ────────────────────────────────────────────────────────────────
+function switchTab(which){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===(which==='new'?0:1)));
+  document.getElementById('tab-new').classList.toggle('active',which==='new');
+  document.getElementById('tab-mod').classList.toggle('active',which==='mod');
+}
+
+// ── Active nav ────────────────────────────────────────────────────────────────
+const SEC_IDS=['overview','system-dist','bu-dist','project-dist','site-dist','dept-dist','health','changes'];
+const NAV_ITEMS=document.querySelectorAll('.nav-item');
+window.addEventListener('scroll',()=>{
+  let cur=SEC_IDS[0];
+  SEC_IDS.forEach(id=>{const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<=90)cur=id;});
+  NAV_ITEMS.forEach(n=>n.classList.toggle('active',n.getAttribute('href')==='#'+cur));
+},{passive:true});
+
+lucide.createIcons();
+</script>
+</body>
+</html>
