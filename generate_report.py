@@ -15,6 +15,9 @@ from pathlib import Path
 import psycopg2
 import psycopg2.extras
 from jinja2 import Environment, FileSystemLoader
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent / ".env")
 
 # ── DB connection ─────────────────────────────────────────────────────────────
 DB_CONFIG = {
